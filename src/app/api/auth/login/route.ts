@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import { users } from '@/lib/users';
+import { findUserByEmail } from '@/lib/database';
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     // Find user
-    const user = users.find(u => u.email === email);
+    const user = await findUserByEmail(email);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Invalid credentials' },

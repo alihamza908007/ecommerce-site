@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import { users } from '@/lib/users';
+import { findUserByEmail, createUser } from '@/lib/database';
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists
-    const existingUser = users.find(u => u.email === email);
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { success: false, error: 'User already exists with this email' },
@@ -45,15 +45,12 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create new user
-    const newUser = {
-      id: (users.length + 1).toString(),
+    const newUser = await createUser({
       name,
       email,
       hashedPassword,
       role: 'user',
-    };
-
-    users.push(newUser);
+    });
 
     // Remove password from returned user object
     const { hashedPassword: _, ...userWithoutPassword } = newUser;
