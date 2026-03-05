@@ -50,13 +50,10 @@ export async function POST(request: Request) {
       !data.name ||
       !data.description ||
       data.price === undefined ||
-      !data.images ||
-      !Array.isArray(data.images) ||
-      data.images.length === 0 ||
-      data.images.length < 5
+      !data.image
     ) {
       return NextResponse.json(
-        { success: false, error: "Name, description, price, and at least 5 images are required" },
+        { success: false, error: "Name, description, price, and image are required" },
         { status: 400 },
       );
     }
@@ -74,7 +71,7 @@ export async function POST(request: Request) {
       name: data.name,
       description: data.description,
       price: parseFloat(data.price),
-      images: data.images,
+      image: data.image,
       stock: stock,
     });
 
@@ -112,13 +109,10 @@ export async function PUT(request: Request) {
       !data.name ||
       !data.description ||
       data.price === undefined ||
-      !data.images ||
-      !Array.isArray(data.images) ||
-      data.images.length === 0 ||
-      data.images.length < 5
+      !data.image
     ) {
       return NextResponse.json(
-        { success: false, error: "Name, description, price, and at least 5 images are required" },
+        { success: false, error: "Name, description, price, and image are required" },
         { status: 400 },
       );
     }
@@ -127,7 +121,7 @@ export async function PUT(request: Request) {
       name: data.name,
       description: data.description,
       price: parseFloat(data.price),
-      images: data.images,
+      image: data.image,
       stock: data.stock !== undefined ? parseInt(data.stock) : undefined,
     });
 

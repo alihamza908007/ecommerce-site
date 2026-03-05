@@ -25,9 +25,8 @@ model Product {
   name           String
   description    String
   price          Float
-  images         String[]  // Array of image URLs
+  image          String
   stock          Int      @default(0)
-  lowStockAlert  Boolean  @default(false)
   orderItems     OrderItem[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
