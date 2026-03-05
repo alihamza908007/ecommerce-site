@@ -1,42 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser, logout } from '@/lib/auth';
 
 export default function HomePage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null);
-
-  useEffect(() => {
-    // Check if user is logged in
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(() => {
     const { user, role } = getCurrentUser();
-    if (user && role) {
-      setCurrentUser({ name: user.name, role });
-    }
-  }, []);
+    return user && role ? { name: user.name, role } : null;
+  });
 
   const handleLogout = () => {
     logout();
     setCurrentUser(null);
-    router.refresh(); // Refresh to update UI
+    router.refresh();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">E-Commerce Store</h1>
+    <div className="min-h-screen text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border-color)] bg-[var(--card-bg)]/70 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
+          <h1 className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-3xl font-bold text-transparent">
+            NovaCart
+          </h1>
           <div>
             {currentUser ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-[var(--text-secondary)]">
                   Hi, {currentUser.name} {currentUser.role === 'admin' && '(Admin)'}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-500"
                 >
                   Logout
                 </button>
@@ -44,7 +41,7 @@ export default function HomePage() {
             ) : (
               <Link
                 href="/auth/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-500"
               >
                 Login
               </Link>
@@ -53,86 +50,27 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Our Store</h2>
-          <p className="text-lg text-gray-600 mb-8">
-            Discover our amazing collection of products
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-10 text-center shadow-2xl backdrop-blur">
+          <h2 className="text-4xl font-bold">A modern shopping experience</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-[var(--text-secondary)]">
+            Discover curated tech products with a smooth, interactive storefront and real-time admin operations.
           </p>
 
           {!currentUser ? (
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Please login to browse our products and shop online.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link
-                  href="/auth/login"
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Sign Up
-                </Link>
-              </div>
+            <div className="mt-8 flex justify-center gap-4">
+              <Link href="/auth/login" className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-500">Login</Link>
+              <Link href="/auth/signup" className="rounded-xl border border-[var(--border-color)] px-6 py-3 font-semibold text-[var(--text-primary)] transition-all duration-300 hover:-translate-y-1 hover:bg-white/10">Sign Up</Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Welcome back, {currentUser.name}! {currentUser.role === 'admin' ? 'You have admin access.' : 'Browse our products or check your cart.'}
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link
-                  href="/products"
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Browse Products
-                </Link>
-                <Link
-                  href="/cart"
-                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  View Cart
-                </Link>
-                {currentUser.role === 'admin' && (
-                  <Link
-                    href="/admin/dashboard"
-                    className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-              </div>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <Link href="/products" className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-500">Browse Products</Link>
+              <Link href="/cart" className="rounded-xl border border-[var(--border-color)] px-6 py-3 font-semibold transition-all duration-300 hover:-translate-y-1 hover:bg-white/10">View Cart</Link>
+              {currentUser.role === 'admin' && (
+                <Link href="/admin/dashboard" className="rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-6 py-3 font-semibold text-white transition-all duration-300 hover:-translate-y-1">Admin Dashboard</Link>
+              )}
             </div>
           )}
-        </div>
-
-        {/* Features Section */}
-        <div className="mt-16">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Easy Shopping</h3>
-              <p className="text-gray-600">
-                Browse our extensive catalog and add items to your cart with just a few clicks.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Secure Checkout</h3>
-              <p className="text-gray-600">
-                Complete your purchase with our secure checkout process.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Order Tracking</h3>
-              <p className="text-gray-600">
-                Track your orders and view your purchase history anytime.
-              </p>
-            </div>
-          </div>
         </div>
       </main>
     </div>
