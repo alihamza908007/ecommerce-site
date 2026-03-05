@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       name: data.name,
       description: data.description,
       price: parseFloat(data.price),
-      images: data.images,
+      image: data.image,
       stock: stock,
     });
 
@@ -127,7 +127,7 @@ export async function PUT(request: Request) {
       name: data.name,
       description: data.description,
       price: parseFloat(data.price),
-      images: data.images,
+      image: data.image,
       stock: data.stock !== undefined ? parseInt(data.stock) : undefined,
     });
 

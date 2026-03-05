@@ -82,7 +82,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const { user, role } = getCurrentUser();
-
     if (!user || role !== 'admin') {
       router.push('/auth/login');
       return;
