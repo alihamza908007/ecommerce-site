@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -94,24 +94,36 @@ export default function CartPage() {
                           <label htmlFor={`quantity-${item.id}`} className="mr-2 text-gray-500">
                             Qty
                           </label>
-                          <select
-                            id={`quantity-${item.id}`}
-                            value={item.quantity}
-                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                            className="max-w-full rounded-md border border-gray-300 py-1.5 text-left text-base font-medium leading-5 text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                          >
-                            {[...Array(10)].map((_, i) => (
-                              <option key={i} value={i + 1}>
-                                {i + 1}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="flex items-center border border-gray-300 rounded-md">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              className="px-3 py-1.5 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              -
+                            </button>
+                            <input
+                              id={`quantity-${item.id}`}
+                              type="text"
+                              value={item.quantity}
+                              readOnly
+                              className="w-16 text-center border-none focus:ring-0 py-1.5 text-base font-medium text-gray-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="px-3 py-1.5 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
 
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
-                          className="font-medium text-indigo-600 hover:text-indigo-500"
+                          className="font-medium text-red-600 hover:text-red-700 transition-colors"
                         >
                           Remove
                         </button>

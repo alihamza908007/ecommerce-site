@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
 import { Product } from '@/types';
@@ -79,31 +79,58 @@ export default function ProductsPage() {
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
           {products.map((product) => (
-            <div key={product.id} className="group relative">
-              <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md overflow-hidden group-hover:opacity-75 lg:h-80 lg:aspect-none">
-                <div className="w-full h-full bg-gray-200 border-2 border-dashed rounded-xl" />
-              </div>
-              <div className="mt-4 flex justify-between">
-                <div>
-                  <h3 className="text-sm text-gray-700">
-                    <a href="#">
-                      <span aria-hidden="true" className="absolute inset-0" />
-                      {product.name}
-                    </a>
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">{product.description}</p>
+            <div
+              key={product.id}
+              className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => router.push(`/products/${product.id}`)}
+            >
+              {/* Product Card Content */}
+              <div className="aspect-h-1 aspect-w-1 w-full bg-gray-200 rounded-lg overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">📦</div>
+                    <p className="text-gray-500 text-sm">{product.name}</p>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-gray-900">${product.price.toFixed(2)}</p>
               </div>
+
+              <div className="mt-4 flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+                    {product.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                    {product.description}
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-gray-900 ml-2">
+                  ${product.price.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Add to Cart Button */}
               <div className="mt-4 flex justify-between items-center">
-                <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+                <p className={`text-xs font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  Stock: {product.stock}
+                </p>
                 <button
-                  onClick={() => handleAddToCart(product)}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(product);
+                  }}
+                  disabled={product.stock <= 0}
+                  className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md transition-colors ${
+                    product.stock > 0
+                      ? 'text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                      : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                  }`}
                 >
-                  Add to Cart
+                  {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
                 </button>
               </div>
+
+              {/* Click hint */}
+              <div className="absolute inset-0 rounded-lg ring-2 ring-transparent group-hover:ring-indigo-500 group-hover:ring-opacity-50 transition-all pointer-events-none" />
             </div>
           ))}
         </div>
