@@ -21,7 +21,7 @@ export async function createProduct(data: {
   name: string;
   description: string;
   price: number;
-  image: string;
+  images: string[];
   stock: number;
 }): Promise<Product> {
   return await prisma.product.create({
@@ -35,8 +35,9 @@ export async function updateProduct(
     name: string;
     description: string;
     price: number;
-    image: string;
+    images: string[];
     stock: number;
+    lowStockAlert: boolean;
   }>
 ): Promise<Product> {
   return await prisma.product.update({
@@ -48,5 +49,15 @@ export async function updateProduct(
 export async function deleteProduct(id: string): Promise<Product> {
   return await prisma.product.delete({
     where: { id },
+  });
+}
+
+export async function updateStock(
+  id: string,
+  stock: number
+): Promise<Product> {
+  return await prisma.product.update({
+    where: { id },
+    data: { stock },
   });
 }
