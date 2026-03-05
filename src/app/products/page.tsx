@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
-import { Product, products as productList } from '@/lib/products';
+import { Product } from '@/types';
 import { getCurrentUser } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function ProductsPage() {
   const { addItem, totalItems } = useCart();
-  const [products] = useState<Product[]>(productList);
-  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     // Check if user is logged in
@@ -21,9 +21,24 @@ export default function ProductsPage() {
       // Redirect to login if not authenticated
       router.push('/auth/login');
     } else {
-      setIsLoading(false);
+      // Fetch products from API
+      fetchProducts();
     }
   }, [router]);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      const data = await response.json();
+      if (data.success) {
+        setProducts(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddToCart = (product: Product) => {
     addItem({
@@ -40,7 +55,7 @@ export default function ProductsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
+          <p className="mt-4 text-gray-600">Loading products...</p>
         </div>
       </div>
     );
