@@ -21,7 +21,7 @@ export async function createProduct(data: {
   name: string;
   description: string;
   price: number;
-  images: string[];
+  image: string;
   stock: number;
 }): Promise<Product> {
   return await prisma.product.create({
@@ -35,9 +35,8 @@ export async function updateProduct(
     name: string;
     description: string;
     price: number;
-    images: string[];
+    image: string;
     stock: number;
-    lowStockAlert: boolean;
   }>
 ): Promise<Product> {
   return await prisma.product.update({
