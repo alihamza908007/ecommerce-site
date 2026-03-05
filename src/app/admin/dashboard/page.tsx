@@ -10,18 +10,14 @@ type AdminProduct = {
   description: string;
   price: number;
   stock: number;
-  image: string;
+  images: string[];
+  lowStockAlert: boolean;
 };
-
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
 type DashboardOrder = {
   id: string;
-  customerName: string;
-  email: string;
   total: number;
-  status: OrderStatus;
-  date: string;
+  status: string;
 };
 
 type ProductFormState = {
@@ -32,14 +28,7 @@ type ProductFormState = {
   imageUrl: string;
 };
 
-type OrderFormState = {
-  customerName: string;
-  email: string;
-  total: string;
-  status: OrderStatus;
-};
-
-const emptyProductForm: ProductFormState = {
+const emptyForm: ProductFormState = {
   name: '',
   description: '',
   price: '',
@@ -47,27 +36,16 @@ const emptyProductForm: ProductFormState = {
   imageUrl: '',
 };
 
-const orderStatuses: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [orders, setOrders] = useState<DashboardOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [productFormState, setProductFormState] = useState<ProductFormState>(emptyProductForm);
-
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
-  const [orderFormState, setOrderFormState] = useState<OrderFormState>({
-    customerName: '',
-    email: '',
-    total: '',
-    status: 'pending',
-  });
+  const [formState, setFormState] = useState<ProductFormState>(emptyForm);
 
   const fetchDashboardData = useCallback(async (showLoader = false) => {
     if (showLoader) {
@@ -110,7 +88,11 @@ export default function AdminDashboard() {
     }
 
     fetchDashboardData(true);
-    const interval = setInterval(() => fetchDashboardData(false), 6000);
+
+    const interval = setInterval(() => {
+      fetchDashboardData(false);
+    }, 6000);
+
     return () => clearInterval(interval);
   }, [fetchDashboardData, router]);
 
@@ -122,32 +104,32 @@ export default function AdminDashboard() {
   );
   const lowStockItems = useMemo(() => products.filter((product) => product.stock <= 5).length, [products]);
 
-  const beginProductEdit = (product: AdminProduct) => {
+  const beginEdit = (product: AdminProduct) => {
     setEditingProductId(product.id);
-    setProductFormState({
+    setFormState({
       name: product.name,
       description: product.description,
       price: String(product.price),
       stock: String(product.stock),
-      imageUrl: product.image || '',
+      imageUrl: product.images?.[0] || '',
     });
   };
 
-  const resetProductForm = () => {
+  const resetForm = () => {
     setEditingProductId(null);
-    setProductFormState(emptyProductForm);
+    setFormState(emptyForm);
   };
 
-  const handleProductSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!productFormState.name || !productFormState.description || !productFormState.price) {
+    if (!formState.name || !formState.description || !formState.price) {
       setFeedback({ type: 'error', message: 'Name, description, and price are required.' });
       return;
     }
 
-    const price = Number(productFormState.price);
-    const stock = Number(productFormState.stock || 0);
+    const price = Number(formState.price);
+    const stock = Number(formState.stock || 0);
 
     if (Number.isNaN(price) || price < 0 || Number.isNaN(stock) || stock < 0) {
       setFeedback({ type: 'error', message: 'Please enter valid positive values for price and stock.' });
@@ -155,15 +137,15 @@ export default function AdminDashboard() {
     }
 
     const payload = {
-      name: productFormState.name,
-      description: productFormState.description,
+      name: formState.name,
+      description: formState.description,
       price,
       stock,
-      image: productFormState.imageUrl || '/uploads/products/placeholder-product.jpg',
+      images: [formState.imageUrl || '/uploads/products/placeholder-product.jpg'],
     };
 
     try {
-      setIsSavingProduct(true);
+      setIsSaving(true);
       const isEditing = Boolean(editingProductId);
       const endpoint = isEditing ? `/api/products?id=${editingProductId}` : '/api/products';
       const method = isEditing ? 'PUT' : 'POST';
@@ -175,29 +157,32 @@ export default function AdminDashboard() {
       });
 
       const result = await response.json();
+
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to save product');
       }
 
       setFeedback({ type: 'success', message: isEditing ? 'Product updated successfully.' : 'Product added successfully.' });
-      resetProductForm();
+      resetForm();
       await fetchDashboardData(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save product';
       setFeedback({ type: 'error', message });
     } finally {
-      setIsSavingProduct(false);
+      setIsSaving(false);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (!window.confirm('Delete this product?')) {
+  const handleDelete = async (id: string) => {
+    const approved = window.confirm('Are you sure you want to delete this product?');
+    if (!approved) {
       return;
     }
 
     try {
       const response = await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
       const result = await response.json();
+
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to delete product');
       }
@@ -211,7 +196,9 @@ export default function AdminDashboard() {
   };
 
   const updateStock = async (product: AdminProduct, nextStock: number) => {
-    if (nextStock < 0) return;
+    if (nextStock < 0) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/products?id=${product.id}`, {
@@ -222,7 +209,7 @@ export default function AdminDashboard() {
           description: product.description,
           price: product.price,
           stock: nextStock,
-          image: product.image || '/uploads/products/placeholder-product.jpg',
+          images: product.images.length ? product.images : ['/uploads/products/placeholder-product.jpg'],
         }),
       });
 
@@ -235,93 +222,6 @@ export default function AdminDashboard() {
       setFeedback({ type: 'success', message: `Stock for ${product.name} updated.` });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not update stock';
-      setFeedback({ type: 'error', message });
-    }
-  };
-
-  const startOrderEdit = (order: DashboardOrder) => {
-    setEditingOrderId(order.id);
-    setOrderFormState({
-      customerName: order.customerName,
-      email: order.email,
-      total: String(order.total),
-      status: order.status,
-    });
-  };
-
-  const saveOrderEdit = async () => {
-    if (!editingOrderId) return;
-
-    const parsedTotal = Number(orderFormState.total);
-    if (!orderFormState.customerName.trim() || !orderFormState.email.trim() || Number.isNaN(parsedTotal) || parsedTotal < 0) {
-      setFeedback({ type: 'error', message: 'Please provide valid order values before saving.' });
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/orders?id=${editingOrderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: orderFormState.customerName,
-          email: orderFormState.email,
-          total: parsedTotal,
-          status: orderFormState.status,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to update order');
-      }
-
-      setEditingOrderId(null);
-      setFeedback({ type: 'success', message: 'Order updated successfully.' });
-      await fetchDashboardData(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update order';
-      setFeedback({ type: 'error', message });
-    }
-  };
-
-  const changeOrderStatus = async (orderId: string, status: OrderStatus) => {
-    try {
-      const response = await fetch(`/api/orders?id=${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to update order status');
-      }
-
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
-      setFeedback({ type: 'success', message: 'Order status updated.' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update order status';
-      setFeedback({ type: 'error', message });
-    }
-  };
-
-  const deleteOrder = async (orderId: string) => {
-    if (!window.confirm('Delete this order? This cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/orders?id=${orderId}`, { method: 'DELETE' });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to delete order');
-      }
-
-      setOrders((prev) => prev.filter((order) => order.id !== orderId));
-      setFeedback({ type: 'success', message: 'Order deleted successfully.' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete order';
       setFeedback({ type: 'error', message });
     }
   };
@@ -376,10 +276,12 @@ export default function AdminDashboard() {
 
       <section className="rounded-2xl border border-cyan-400/20 bg-slate-900/80 p-5 shadow-lg shadow-cyan-900/20">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-cyan-100">{editingProductId ? 'Edit Product' : 'Add New Product'}</h2>
+          <h2 className="text-xl font-semibold text-cyan-100">
+            {editingProductId ? 'Edit Product' : 'Add New Product'}
+          </h2>
           {editingProductId && (
             <button
-              onClick={resetProductForm}
+              onClick={resetForm}
               className="rounded-md border border-slate-500 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-800"
             >
               Cancel Edit
@@ -387,18 +289,18 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <form className="grid grid-cols-1 gap-3 md:grid-cols-2" onSubmit={handleProductSubmit}>
+        <form className="grid grid-cols-1 gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           <input
             className="rounded-lg border border-slate-600 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
             placeholder="Product name"
-            value={productFormState.name}
-            onChange={(event) => setProductFormState((prev) => ({ ...prev, name: event.target.value }))}
+            value={formState.name}
+            onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
           />
           <input
             className="rounded-lg border border-slate-600 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
             placeholder="Image URL (optional)"
-            value={productFormState.imageUrl}
-            onChange={(event) => setProductFormState((prev) => ({ ...prev, imageUrl: event.target.value }))}
+            value={formState.imageUrl}
+            onChange={(event) => setFormState((prev) => ({ ...prev, imageUrl: event.target.value }))}
           />
           <input
             type="number"
@@ -406,30 +308,30 @@ export default function AdminDashboard() {
             step="0.01"
             className="rounded-lg border border-slate-600 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
             placeholder="Price"
-            value={productFormState.price}
-            onChange={(event) => setProductFormState((prev) => ({ ...prev, price: event.target.value }))}
+            value={formState.price}
+            onChange={(event) => setFormState((prev) => ({ ...prev, price: event.target.value }))}
           />
           <input
             type="number"
             min={0}
             className="rounded-lg border border-slate-600 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
             placeholder="Stock quantity"
-            value={productFormState.stock}
-            onChange={(event) => setProductFormState((prev) => ({ ...prev, stock: event.target.value }))}
+            value={formState.stock}
+            onChange={(event) => setFormState((prev) => ({ ...prev, stock: event.target.value }))}
           />
           <textarea
             className="md:col-span-2 rounded-lg border border-slate-600 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
             rows={3}
             placeholder="Description"
-            value={productFormState.description}
-            onChange={(event) => setProductFormState((prev) => ({ ...prev, description: event.target.value }))}
+            value={formState.description}
+            onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
           />
           <button
             type="submit"
-            disabled={isSavingProduct}
+            disabled={isSaving}
             className="md:col-span-2 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:from-cyan-400 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSavingProduct ? 'Saving...' : editingProductId ? 'Save Product Changes' : 'Add Product'}
+            {isSaving ? 'Saving...' : editingProductId ? 'Save Product Changes' : 'Add Product'}
           </button>
         </form>
       </section>
@@ -463,7 +365,9 @@ export default function AdminDashboard() {
                       >
                         -
                       </button>
-                      <span className="inline-flex min-w-8 justify-center rounded bg-slate-800 px-2 py-1 text-slate-100">{product.stock}</span>
+                      <span className="inline-flex min-w-8 justify-center rounded bg-slate-800 px-2 py-1 text-slate-100">
+                        {product.stock}
+                      </span>
                       <button
                         onClick={() => updateStock(product, product.stock + 1)}
                         className="h-7 w-7 rounded-md border border-slate-600 text-slate-300 transition hover:border-cyan-400 hover:text-cyan-200"
@@ -484,13 +388,13 @@ export default function AdminDashboard() {
                   <td className="px-3 py-3">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => beginProductEdit(product)}
+                        onClick={() => beginEdit(product)}
                         className="rounded-md border border-indigo-400/40 px-2.5 py-1.5 text-xs font-medium text-indigo-200 transition hover:bg-indigo-400/10"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => handleDelete(product.id)}
                         className="rounded-md border border-rose-400/40 px-2.5 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-400/10"
                       >
                         Delete
@@ -499,136 +403,6 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-fuchsia-400/20 bg-slate-900/80 p-5 shadow-lg shadow-fuchsia-900/20">
-        <h2 className="mb-4 text-xl font-semibold text-fuchsia-100">Manage Orders</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-3 py-2">Order</th>
-                <th className="px-3 py-2">Customer</th>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Total</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const isEditing = editingOrderId === order.id;
-                return (
-                  <tr key={order.id} className="border-t border-slate-800 transition-colors hover:bg-slate-800/40">
-                    <td className="px-3 py-3 font-medium text-slate-100">{order.id}</td>
-                    <td className="px-3 py-3 text-slate-200">
-                      {isEditing ? (
-                        <input
-                          value={orderFormState.customerName}
-                          onChange={(event) => setOrderFormState((prev) => ({ ...prev, customerName: event.target.value }))}
-                          className="w-full rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        />
-                      ) : (
-                        order.customerName
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-slate-300">
-                      {isEditing ? (
-                        <input
-                          value={orderFormState.email}
-                          onChange={(event) => setOrderFormState((prev) => ({ ...prev, email: event.target.value }))}
-                          className="w-full rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        />
-                      ) : (
-                        order.email
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-slate-300">{new Date(order.date).toLocaleDateString()}</td>
-                    <td className="px-3 py-3 text-slate-200">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={orderFormState.total}
-                          onChange={(event) => setOrderFormState((prev) => ({ ...prev, total: event.target.value }))}
-                          className="w-24 rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        />
-                      ) : (
-                        `$${order.total.toFixed(2)}`
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      {isEditing ? (
-                        <select
-                          value={orderFormState.status}
-                          onChange={(event) =>
-                            setOrderFormState((prev) => ({ ...prev, status: event.target.value as OrderStatus }))
-                          }
-                          className="rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        >
-                          {orderStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <select
-                          value={order.status}
-                          onChange={(event) => changeOrderStatus(order.id, event.target.value as OrderStatus)}
-                          className="rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        >
-                          {orderStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex gap-2">
-                        {isEditing ? (
-                          <>
-                            <button
-                              onClick={saveOrderEdit}
-                              className="rounded-md border border-emerald-400/40 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-400/10"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingOrderId(null)}
-                              className="rounded-md border border-slate-500 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => startOrderEdit(order)}
-                              className="rounded-md border border-fuchsia-400/40 px-2.5 py-1.5 text-xs font-medium text-fuchsia-200 transition hover:bg-fuchsia-400/10"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => deleteOrder(order.id)}
-                              className="rounded-md border border-rose-400/40 px-2.5 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-400/10"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
             </tbody>
           </table>
         </div>
