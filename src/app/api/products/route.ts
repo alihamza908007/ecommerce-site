@@ -53,10 +53,10 @@ export async function POST(request: Request) {
       !data.images ||
       !Array.isArray(data.images) ||
       data.images.length === 0 ||
-      data.images.length < 5
+      data.images.length < 1
     ) {
       return NextResponse.json(
-        { success: false, error: "Name, description, price, and at least 5 images are required" },
+        { success: false, error: "Name, description, price, and at least 1 image is required" },
         { status: 400 },
       );
     }
@@ -115,10 +115,10 @@ export async function PUT(request: Request) {
       !data.images ||
       !Array.isArray(data.images) ||
       data.images.length === 0 ||
-      data.images.length < 5
+      data.images.length < 1
     ) {
       return NextResponse.json(
-        { success: false, error: "Name, description, price, and at least 5 images are required" },
+        { success: false, error: "Name, description, price, and at least 1 image is required" },
         { status: 400 },
       );
     }
